@@ -23,6 +23,8 @@ import (
 	tomb "gopkg.in/tomb.v2"
 )
 
+const clientID = "metamorphosis"
+
 func init() {
 	sarama.Logger = log.New(os.Stdout, "[sarama] ", log.LstdFlags)
 }
@@ -173,27 +175,30 @@ func NewConsumer(config ConsumerConfig) (*Consumer, error) {
 	clientCfg.Producer.Return.Successes = true
 	clientCfg.Version = sarama.V2_1_0_0
 	clientCfg.Consumer.Offsets.Initial = sarama.OffsetOldest
+	clientCfg.ClientID = clientID
 	if config.TLSConfig != nil {
 		zapctx.Error(context.Background(), "setting TLS config")
 		clientCfg.Net.TLS.Config = config.TLSConfig.tls()
 		clientCfg.Net.TLS.Enable = true
 	}
 
-	admin, err := sarama.NewClusterAdmin(config.Brokers, clientCfg)
-	if err != nil {
-		return nil, errors.Annotate(err, "unable to create cluster admin client")
-	}
-	topicMeta, err := admin.DescribeTopics([]string{config.Topic})
-	if err != nil {
-		return nil, errors.Annotatef(err, "unable to fetch topic %s meta", config.Topic)
-	}
-	if len(topicMeta) < 1 {
-		return nil, errors.Annotatef(err, "topic %s does not exist in the cluster", config.Topic)
-	}
-
 	client, err := newClient(config.Brokers, clientCfg)
 	if err != nil {
 		return nil, errors.Annotate(err, "unable to create new kafka client")
+	}
+	topics, err := client.Topics()
+	if err != nil {
+		return nil, errors.Annotate(err, "unable to retrieve topic(s) metadata")
+	}
+	found := false
+	for _, topic := range topics {
+		if config.Topic == topic {
+			found = true
+			break
+		}
+	}
+	if !found {
+		return nil, fmt.Errorf("unable to find topic %s in cluster", config.Topic)
 	}
 
 	group, err := newConsumerGroupFromClient(config.GroupName, client)

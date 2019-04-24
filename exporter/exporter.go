@@ -22,6 +22,8 @@ import (
 	yaml "gopkg.in/yaml.v1"
 )
 
+const maxBackoff = time.Minute * 5
+
 var (
 	kafkaBrokers = os.Getenv("KAFKA_BROKERS")
 	influxAPI    = os.Getenv("INFLUX_API")
@@ -145,23 +147,36 @@ func main() {
 		tries := 0
 		nextTime := (time.Duration(math.Exp2(float64(tries))) * time.Millisecond) + time.Duration(rand.Intn(100))
 		timer := time.NewTimer(nextTime)
+		topics := config.Topics
 
-		for len(config.Topics) > 0 {
-			for i, topicConfig := range config.Topics {
+		for len(topics) > 0 {
+			var tmpTopics []TopicConfig
+
+			for _, topicConfig := range topics {
 				consumer, err := startConsumer(ctx, config.kafkaBrokers(), tlsConfig, httpClient, topicConfig)
 				if err != nil {
-					log.Printf("failed to start consumer with topic: %s: %v", topicConfig, err)
+					log.Printf("failed to start consumer with topic: %s: %v", topicConfig.Topic, err)
+					tmpTopics = append(tmpTopics, topicConfig)
 				} else {
-					config.Topics[i] = config.Topics[len(config.Topics)-1]
-					config.Topics = config.Topics[:len(config.Topics)-1]
 					consumers = append(consumers, consumer)
 				}
 			}
 
+			topics = tmpTopics
+
 			tries++
 			nextTime = (time.Duration(math.Exp2(float64(tries))) * time.Millisecond) + time.Duration(rand.Intn(100))
+			if nextTime > maxBackoff {
+				log.Fatalf("next timer %+v surpasses the max backoff time of %+v", nextTime.String(), maxBackoff.String())
+				return
+			}
+
 			timer = time.NewTimer(nextTime)
-			log.Printf("scheduling next retry: %+v, tries: %d, topics: %+v\n", nextTime.String(), tries+1, config.Topics)
+			var failingTopics []string
+			for _, topic := range topics {
+				failingTopics = append(failingTopics, topic.Topic)
+			}
+			log.Printf("scheduling next retry: %+v, tries: %d, topics failing: %+v\n", nextTime.String(), tries+1, failingTopics)
 
 			select {
 			case <-ctx.Done():
