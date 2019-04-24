@@ -161,14 +161,13 @@ func main() {
 					consumers = append(consumers, consumer)
 				}
 			}
-
 			topics = tmpTopics
 
 			tries++
 			nextTime = (time.Duration(math.Exp2(float64(tries))) * time.Millisecond) + time.Duration(rand.Intn(100))
 			if nextTime > maxBackoff {
-				log.Fatalf("next timer %+v surpasses the max backoff time of %+v", nextTime.String(), maxBackoff.String())
-				return
+				log.Printf("next timer %+v surpasses the max backoff time of %+v, setting to max backoff time\n", nextTime.String(), maxBackoff.String())
+				nextTime = maxBackoff
 			}
 
 			timer = time.NewTimer(nextTime)
