@@ -179,6 +179,18 @@ func NewConsumer(config ConsumerConfig) (*Consumer, error) {
 		clientCfg.Net.TLS.Enable = true
 	}
 
+	admin, err := sarama.NewClusterAdmin(config.Brokers, clientCfg)
+	if err != nil {
+		return nil, errors.Annotate(err, "unable to create cluster admin client")
+	}
+	topicMeta, err := admin.DescribeTopics([]string{config.Topic})
+	if err != nil {
+		return nil, errors.Annotatef(err, "unable to fetch topic %s meta", config.Topic)
+	}
+	if len(topicMeta) < 1 {
+		return nil, errors.Annotatef(err, "topic %s does not exist in the cluster", config.Topic)
+	}
+
 	client, err := newClient(config.Brokers, clientCfg)
 	if err != nil {
 		return nil, errors.Annotate(err, "unable to create new kafka client")

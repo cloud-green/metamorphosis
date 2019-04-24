@@ -9,6 +9,8 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"math"
+	"math/rand"
 	"os"
 	"os/signal"
 	"strings"
@@ -138,14 +140,38 @@ func main() {
 		log.Fatalf("failed to create database: %v", err)
 	}
 
-	consumers := make([]*Consumer, len(config.Topics))
-	for i, topicConfig := range config.Topics {
-		consumer, err := startConsumer(ctx, config.kafkaBrokers(), tlsConfig, httpClient, topicConfig)
-		if err != nil {
-			log.Fatalf("failed to start consumer: %v", err)
+	consumers := make([]*Consumer, 0)
+	go func() {
+		tries := 0
+		nextTime := (time.Duration(math.Exp2(float64(tries))) * time.Millisecond) + time.Duration(rand.Intn(100))
+		timer := time.NewTimer(nextTime)
+
+		for len(config.Topics) > 0 {
+			for i, topicConfig := range config.Topics {
+				consumer, err := startConsumer(ctx, config.kafkaBrokers(), tlsConfig, httpClient, topicConfig)
+				if err != nil {
+					log.Printf("failed to start consumer with topic: %s: %v", topicConfig, err)
+				} else {
+					config.Topics[i] = config.Topics[len(config.Topics)-1]
+					config.Topics = config.Topics[:len(config.Topics)-1]
+					consumers = append(consumers, consumer)
+				}
+			}
+
+			tries++
+			nextTime = (time.Duration(math.Exp2(float64(tries))) * time.Millisecond) + time.Duration(rand.Intn(100))
+			timer = time.NewTimer(nextTime)
+			log.Printf("scheduling next retry: %+v, tries: %d, topics: %+v\n", nextTime.String(), tries+1, config.Topics)
+
+			select {
+			case <-ctx.Done():
+				log.Println("context canceled, exiting backoff")
+				return
+			case <-timer.C:
+			}
 		}
-		consumers[i] = consumer
-	}
+	}()
+
 	defer func() {
 		for _, consumer := range consumers {
 			err := consumer.Close()
