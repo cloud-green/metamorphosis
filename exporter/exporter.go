@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
-	"math/rand"
 	"os"
 	"os/signal"
 	"strconv"
@@ -151,10 +150,9 @@ func main() {
 	for _, topicConfig := range config.Topics {
 		consumer, err := startConsumer(ctx, config.kafkaBrokers(), tlsConfig, httpClient, topicConfig)
 		if err != nil {
-			exitTime := (5 * time.Second) + (time.Duration(rand.Intn(100)) * time.Millisecond)
-			log.Printf("failed to start consumer with topic: %s %v, exiting in %v", topicConfig.Topic, err, exitTime)
+			log.Printf("failed to start consumer with topic: %s %v, exiting in 5s", topicConfig.Topic, err)
 
-			timer := time.NewTimer(exitTime)
+			timer := time.NewTimer(5 * time.Second)
 
 			select {
 			case <-timer.C:
