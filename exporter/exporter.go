@@ -151,7 +151,7 @@ func main() {
 	for _, topicConfig := range config.Topics {
 		consumer, err := startConsumer(ctx, config.kafkaBrokers(), tlsConfig, httpClient, topicConfig)
 		if err != nil {
-			exitTime := (5 * time.Second) + time.Duration(rand.Intn(100))
+			exitTime := (5 * time.Second) + (time.Duration(rand.Intn(100)) * time.Millisecond)
 			log.Printf("failed to start consumer with topic: %s %v, exiting in %v", topicConfig.Topic, err, exitTime)
 
 			timer := time.NewTimer(exitTime)
