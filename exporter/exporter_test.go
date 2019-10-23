@@ -310,7 +310,7 @@ func TestConsumer(t *testing.T) {
 			"a":  42,
 			"b":  "just a string",
 			"c":  5,
-			"ts": "2019-01-02T15:04:05Z",
+			"ts": "2019-09-16T12:00:00+0000",
 		},
 		timestamps: []time.Time{
 			time.Date(2019, 5, 1, 12, 3, 5, 7, time.UTC),
@@ -319,7 +319,7 @@ func TestConsumer(t *testing.T) {
 			p := points.Points()
 			c.Assert(p, qt.HasLen, 1)
 			point := p[0]
-			c.Assert(point.String(), qt.Equals, fmt.Sprintf(`test-topic a=42,b="just a string" 1546387200000000000`))
+			c.Assert(point.String(), qt.Equals, fmt.Sprintf(`test-topic a=42,b="just a string" 1568592000000000000`))
 		},
 	}}
 

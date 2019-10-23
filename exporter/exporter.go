@@ -22,8 +22,11 @@ import (
 	yaml "gopkg.in/yaml.v1"
 )
 
-const maxBackoff = time.Minute * 5
-const maxTopNEntries = 100
+const (
+	maxBackoff      = time.Minute * 5
+	maxTopNEntries  = 100
+	timestampFormat = "2006-01-02T15:04:05Z0700"
+)
 
 var (
 	kafkaBrokers = os.Getenv("KAFKA_BROKERS")
@@ -379,7 +382,8 @@ func (c *dataConsumer) process(ctx context.Context, data [][]byte, timestamps []
 				log.Printf("timestamp field %q not present or incorrectly formatted in data point %s", c.config.TimestampField, string(datum))
 				continue
 			}
-			ts, err = time.Parse(time.RFC3339, tsRaw)
+
+			ts, err = time.Parse(timestampFormat, tsRaw)
 			if err != nil {
 				log.Printf("failed to parse timestamp field value %q: %v", tsRaw, err)
 				continue
