@@ -3,6 +3,7 @@ module github.com/cloud-green/metamorphosis
 go 1.12
 
 require (
+	github.com/BurntSushi/toml v1.2.1 // indirect
 	github.com/Shopify/sarama v1.22.0
 	github.com/frankban/quicktest v1.5.0
 	github.com/influxdata/influxdb1-client v0.0.0-20190124185755-16c852ea613f
@@ -16,8 +17,7 @@ require (
 	github.com/pierrec/lz4 v2.0.5+incompatible // indirect
 	github.com/stretchr/testify v1.4.0 // indirect
 	go.uber.org/zap v1.9.1
-	golang.org/x/crypto v0.0.0-20191002192127-34f69633bfdc // indirect
-	golang.org/x/net v0.0.0-20191009170851-d66e71096ffb // indirect
+	golang.org/x/crypto v0.1.0 // indirect
 	gopkg.in/mgo.v2 v2.0.0-20180705113604-9856a29383ce // indirect
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0
 	gopkg.in/tomb.v2 v2.0.0-20161208151619-d5d1b5820637
